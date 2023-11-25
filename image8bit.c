@@ -10,7 +10,7 @@
 /// 2013, 2023
 
 // Student authors (fill in below):
-// NMec:  Name:
+// NMec: 113717 Name: Christian Fernandes
 // 
 // 
 // 
@@ -147,12 +147,13 @@ void ImageInit(void) { ///
   InstrCalibrate();
   InstrName[0] = "pixmem";  // InstrCount[0] will count pixel array acesses
   // Name other counters here...
-  
+  InstrName[1] = "num_comps"; // InstrCount[1] will count number of comparations
 }
 
 // Macros to simplify accessing instrumentation counters:
 #define PIXMEM InstrCount[0]
 // Add more macros here...
+#define NUM_COMPS InstrCount[1]
 
 // TIP: Search for PIXMEM or InstrCount to see where it is incremented!
 
@@ -172,6 +173,25 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   assert (height >= 0);
   assert (0 < maxval && maxval <= PixMax);
   // Insert your code here!
+
+  Image ptr_image = NULL;
+  uint8* ptr_pixels = NULL;
+
+  int success = 
+    check( (ptr_image = (Image) malloc(sizeof(*ptr_image))) != NULL, "Memory allocation failed") &&
+    check( (ptr_pixels = (uint8*) malloc(sizeof(uint8) * (width * height))) != NULL, "Memory allocation failed");
+
+  if (!success)
+  {
+    return NULL;
+  }
+
+  ptr_image->width = width;
+  ptr_image->height = height;
+  ptr_image->maxval = maxval;
+  ptr_image->pixel = ptr_pixels;
+
+  return ptr_image;
 }
 
 /// Destroy the image pointed to by (*imgp).
@@ -182,6 +202,11 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
 void ImageDestroy(Image* imgp) { ///
   assert (imgp != NULL);
   // Insert your code here!
+  Image ptr_image = *imgp;
+  free(ptr_image->pixel);
+  free(ptr_image);
+  
+  *imgp = NULL;
 }
 
 
@@ -294,6 +319,19 @@ int ImageMaxval(Image img) { ///
 void ImageStats(Image img, uint8* min, uint8* max) { ///
   assert (img != NULL);
   // Insert your code here!
+  *min = img->pixel[0];
+  *max = img->pixel[0];
+
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      uint8 pixel = ImageGetPixel(img, x, y);
+
+      if (pixel < *min) *min = pixel;
+      if (pixel > *max) *max = pixel;
+    }
+  }
 }
 
 /// Check if pixel position (x,y) is inside img.
@@ -306,6 +344,7 @@ int ImageValidPos(Image img, int x, int y) { ///
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   // Insert your code here!
+  return ImageValidPos(img, x, y) && (x + w <= img->width) && (y + h <= img->height);
 }
 
 /// Pixel get & set operations
@@ -321,6 +360,8 @@ int ImageValidRect(Image img, int x, int y, int w, int h) { ///
 static inline int G(Image img, int x, int y) {
   int index;
   // Insert your code here!
+  index = img->width * y + x;
+
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
@@ -356,6 +397,15 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 void ImageNegative(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      uint8 newPix = ImageGetPixel(img, x, y);
+
+      ImageSetPixel(img, x, y, img->maxval - newPix);
+    }
+  }
 }
 
 /// Apply threshold to image.
@@ -364,6 +414,17 @@ void ImageNegative(Image img) { ///
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   // Insert your code here!
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      uint8 pix = ImageGetPixel(img, x, y);
+
+      if (pix < thr) { ImageSetPixel(img, x, y, 0); continue; }
+
+      ImageSetPixel(img, x, y, img->maxval);
+    }
+  }
 }
 
 /// Brighten image by a factor.
@@ -372,8 +433,20 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert (img != NULL);
-  // ? assert (factor >= 0.0);
+  assert (factor >= 0.0);
   // Insert your code here!
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      uint8 pix = ImageGetPixel(img, x, y);
+
+      // If new pixel value is greater than max value, then set pixel to max value
+      if (pix * factor + 0.5 > img->maxval) { ImageSetPixel(img, x, y, img->maxval); continue; }
+
+      ImageSetPixel(img, x, y, pix*factor + 0.5);
+    }
+  }
 }
 
 
@@ -401,6 +474,33 @@ void ImageBrighten(Image img, double factor) { ///
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+  Image rotate_img = NULL;
+  
+  // Rotated image will have width equal to original image's height and height equal to original image's width
+  int success =
+    check ( (rotate_img = ImageCreate(img->height, img->width, img->maxval)) != NULL, "Failed to create image");
+
+  if (!success)
+  {
+    errsave = errno;
+    ImageDestroy(&rotate_img);
+    errno = errsave;
+
+    return NULL;
+  }
+  
+  // Formula to rotate an image 90 degress anti-clockwise: (x, y) -> (y, width-1 - x)
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      uint8 pix = ImageGetPixel(img, x, y);
+
+      ImageSetPixel(rotate_img, y, img->width-1 - x, pix);
+    }
+  }
+
+  return rotate_img;
 }
 
 /// Mirror an image = flip left-right.
@@ -413,6 +513,32 @@ Image ImageRotate(Image img) { ///
 Image ImageMirror(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+  Image mirror_img = NULL;
+  
+  int success =
+    check ( (mirror_img = ImageCreate(img->width, img->height, img->maxval)) != NULL, "Failed to create image");
+
+  if (!success)
+  {
+    errsave = errno;
+    ImageDestroy(&mirror_img);
+    errno = errsave;
+
+    return NULL;
+  }
+
+  // Formula to mirror left-right: (x, y) -> (width-1 - x, y)
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      uint8 pix = ImageGetPixel(img, x, y);
+
+      ImageSetPixel(mirror_img, img->width-1 - x, y, pix);
+    }
+  }
+
+  return mirror_img;
 }
 
 /// Crop a rectangular subimage from img.
@@ -431,6 +557,32 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   assert (ImageValidRect(img, x, y, w, h));
   // Insert your code here!
+
+  Image crop_img = NULL;
+
+  int sucess = 
+    check ( (crop_img = ImageCreate(w, h, img->maxval)) != NULL, "Failed to create image" );
+
+  if (!sucess)
+  {
+    errsave = errno;
+    ImageDestroy(&crop_img);
+    errno = errsave;
+
+    return NULL;
+  }
+
+  for (int y_crop = 0; y_crop < h; y_crop++)
+  {
+    for (int x_crop = 0; x_crop < w; x_crop++)
+    {
+      uint8 pixLevel = ImageGetPixel(img, x_crop + x, y_crop + y);
+
+      ImageSetPixel(crop_img, x_crop, y_crop, pixLevel);
+    }
+  }
+
+  return crop_img;
 }
 
 
@@ -445,6 +597,16 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
+
+  for (int y_paste = 0; y_paste < img2->height; y_paste++)
+  {
+    for (int x_paste = 0; x_paste < img2->width; x_paste++)
+    {
+      uint8 pix = ImageGetPixel(img2, x_paste, y_paste);
+
+      ImageSetPixel(img1, x + x_paste, y + y_paste, pix);
+    }
+  }
 }
 
 /// Blend an image into a larger image.
@@ -458,6 +620,33 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
+
+  for (int y_paste = 0; y_paste < img2->height; y_paste++)
+  {
+    for (int x_paste = 0; x_paste < img2->width; x_paste++)
+    {
+      uint8 pix_1 = ImageGetPixel(img1, x + x_paste, y + y_paste);
+      uint8 pix_2 = ImageGetPixel(img2, x_paste, y_paste);
+
+      int newPix = pix_1 * (1 - alpha) + pix_2 * alpha + 0.5;
+
+      // If the value of new pixel is greater than the max value of image, then sets pixel to max value
+      if (newPix > img1->maxval)
+      {
+        ImageSetPixel(img1, x + x_paste, y + y_paste, img1->maxval);
+        continue;
+      }
+
+      // If the value of new pixel is smaller than 0, then sets pixel to 0
+      if (newPix < 0)
+      {
+        ImageSetPixel(img1, x + x_paste, y + y_paste, 0);
+        continue;
+      }
+
+      ImageSetPixel(img1, x + x_paste, y + y_paste, (uint8) newPix);
+    }
+  }
 }
 
 /// Compare an image to a subimage of a larger image.
@@ -468,6 +657,24 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
   // Insert your code here!
+
+  // Let's define x_paste as the 'x' coordinate of img2 and y_paste as the 'y' coordinate of img2
+  // The (x_paste, y_paste) pixel in img2 will match (or not) (x + x_paste, y + y_paste) pixel in img1
+  for (int y_paste = 0; y_paste < img2->height; y_paste++)
+  {
+    for (int x_paste = 0; x_paste < img2->width; x_paste++)
+    {
+      uint8 pix_1 = ImageGetPixel(img1, x + x_paste, y + y_paste);
+      uint8 pix_2 = ImageGetPixel(img2, x_paste, y_paste);
+
+      // If any pixel is different, then images do not match -> return 0
+      NUM_COMPS++;
+      if (pix_1 != pix_2) return 0;
+    }
+  }
+
+  // If for loop ends and no pixel was different, then subimage matches image -> return 1
+  return 1;
 }
 
 /// Locate a subimage inside another image.
@@ -478,7 +685,34 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
   // Insert your code here!
+
+  for (int y = 0; y < img1->height - img2->height + 1; y++)
+  {
+    for (int x = 0; x < img1->width - img2->width + 1; x++)
+    {
+      int located = ImageMatchSubImage(img1, x, y, img2);
+
+      if (located)
+      {
+        *px = x;
+        *py = y;
+        return 1;
+      }
+    }
+  }
+
+  return 0;
 }
+
+
+
+/// Auxiliar function to help ImageBlur
+/// Returns the smaller argument
+static int min(int a, int b)
+{
+  return a < b ? a : b;
+}
+
 
 
 /// Filtering
@@ -489,5 +723,127 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
   // Insert your code here!
-}
 
+  // Pointer 'img' can't be NULL and dx and dy should be non-negative
+  assert(img != NULL);
+  assert(dx >= 0 && dy >= 0);
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  /*
+  // Slower algorithm (depends on image's size and window's size)
+
+  // Array to store new pixels' values
+  uint8 newPixels[img->width][img->height];
+  
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      int sum_filterWindow = 0;
+      int numPixels_filterWindow = 0;
+
+      for (int y_window = y-dy; y_window <= y+dy; y_window++)
+      {
+        for (int x_window = x-dx; x_window <= x+dx; x_window++)
+        {
+          // If pixel is outside the image, it gets skipped
+          if (x_window >= 0 && y_window >= 0 && x_window < img->width && y_window < img->height)
+          {
+            sum_filterWindow += ImageGetPixel(img, x_window, y_window);
+            numPixels_filterWindow++;
+          }
+        }
+      }
+
+      uint8 mean_filterWindow = (float)sum_filterWindow / (float)numPixels_filterWindow + 0.5;
+      newPixels[x][y] = mean_filterWindow;
+    }
+  }
+
+  for (int y = 0; y < img->height; y++)
+    for (int x = 0; x < img->width; x++)
+      ImageSetPixel(img, x, y, newPixels[x][y]);
+  */
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  
+  // Faster algorithm (doesn't depend on window's size, only image's size)
+
+  // Array to store sum of all pixels of the square with corners (0, 0), (x, 0), (x, y) and (0, y)
+  int cumulativeSum[img->width][img->height];
+
+  // Setting first pixel
+  cumulativeSum[0][0] = ImageGetPixel(img, 0, 0);
+
+  // Setting first row and first column
+  for (int x = 1; x < img->width; x++) cumulativeSum[x][0] = ImageGetPixel(img, x, 0) + cumulativeSum[x-1][0];
+  for (int y = 1; y < img->height; y++) cumulativeSum[0][y] = ImageGetPixel(img, 0, y) + cumulativeSum[0][y-1];
+
+  // Setting all other pixels
+  for (int y = 1; y < img->height; y++)
+  {
+    for (int x = 1; x < img->width; x++)
+    {
+      uint8 pixel = ImageGetPixel(img, x, y);
+      int pixel_x_1 = cumulativeSum[x-1][y];
+      int pixel_y_1 = cumulativeSum[x][y-1];
+      int pixel_x_1_y_1 = cumulativeSum[x-1][y-1];
+
+      cumulativeSum[x][y] = pixel + pixel_x_1 + pixel_y_1 - pixel_x_1_y_1;
+    }
+  }
+
+  // Start filter
+  // Let's consider a square with these corners:
+  //     Bottom right (BR): Last pixel of filter windon ([x-dx, x+dx]x[y-dy, y+dy] rectangle)
+  //     Bottom left (BL): First pixel outside (to the left) of filter window with same y as BR
+  //     Top rigth (TR): First pixel outside (at the left) of filter window with same x as BR
+  //     Top left (TL): Pixel with same x as BL and same y as TR
+  // Considering we have the cumulative sum of all pixels from the square with corners (0, 0) and (x, y),
+  // to calculate the sum of pixels in each filter window, with can do BR - BL - TR + TL
+  for (int y = 0; y < img->height; y++)
+  {
+    for (int x = 0; x < img->width; x++)
+    {
+      int index_x_BR = min(x+dx, img->width-1);
+      int index_y_BR = min(y+dy, img->height-1);
+
+      int index_x_BL = (x-dx-1 < 0 ? -1 : x-dx-1);
+      int index_y_BL = index_y_BR;
+
+      int index_x_TR = index_x_BR;
+      int index_y_TR = (y-dy-1 < 0 ? -1 : y-dy-1);
+
+      int index_x_TL = index_x_BL;
+      int index_y_TL = index_y_TR;
+
+      int cumSum_BR, cumSum_BL, cumSum_TR, cumSum_TL;
+
+      cumSum_BR = cumulativeSum[index_x_BR][index_y_BR];
+
+      if (index_x_BL == -1) cumSum_BL = 0;
+      else cumSum_BL = cumulativeSum[index_x_BL][index_y_BL];
+
+      if (index_y_TR == -1) cumSum_TR = 0;
+      else cumSum_TR = cumulativeSum[index_x_TR][index_y_TR];
+
+      if (index_x_TL == -1 || index_y_TL == -1) cumSum_TL = 0;
+      else cumSum_TL = cumulativeSum[index_x_TL][index_y_TL];
+
+      int sum_filterWindow = cumSum_BR - cumSum_BL - cumSum_TR + cumSum_TL;
+
+      int width_filterWindow = index_x_BR - index_x_BL;
+      int height_filterWindow = index_y_BR - index_y_TR;
+      int numPixels_filterWindow = width_filterWindow * height_filterWindow;
+
+      uint8 mean_filterWindow = (float)sum_filterWindow / (float)numPixels_filterWindow + 0.5;
+
+      ImageSetPixel(img, x, y, mean_filterWindow);
+    }
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+}
