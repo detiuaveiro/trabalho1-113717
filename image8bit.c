@@ -10,11 +10,7 @@
 /// 2013, 2023
 
 // Student authors (fill in below):
-<<<<<<< HEAD
 // NMec: 113717 Name: Christian Fernandes
-=======
-// NMec:  Name:
->>>>>>> upstream/main
 // 
 // 
 // 
@@ -151,20 +147,13 @@ void ImageInit(void) { ///
   InstrCalibrate();
   InstrName[0] = "pixmem";  // InstrCount[0] will count pixel array acesses
   // Name other counters here...
-<<<<<<< HEAD
   InstrName[1] = "num_comps"; // InstrCount[1] will count number of comparations
-=======
-  
->>>>>>> upstream/main
 }
 
 // Macros to simplify accessing instrumentation counters:
 #define PIXMEM InstrCount[0]
 // Add more macros here...
-<<<<<<< HEAD
 #define NUM_COMPS InstrCount[1]
-=======
->>>>>>> upstream/main
 
 // TIP: Search for PIXMEM or InstrCount to see where it is incremented!
 
@@ -184,7 +173,6 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   assert (height >= 0);
   assert (0 < maxval && maxval <= PixMax);
   // Insert your code here!
-<<<<<<< HEAD
 
   Image ptr_image = NULL;
   uint8* ptr_pixels = NULL;
@@ -204,8 +192,6 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   ptr_image->pixel = ptr_pixels;
 
   return ptr_image;
-=======
->>>>>>> upstream/main
 }
 
 /// Destroy the image pointed to by (*imgp).
@@ -216,14 +202,11 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
 void ImageDestroy(Image* imgp) { ///
   assert (imgp != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   Image ptr_image = *imgp;
   free(ptr_image->pixel);
   free(ptr_image);
   
   *imgp = NULL;
-=======
->>>>>>> upstream/main
 }
 
 
@@ -336,7 +319,6 @@ int ImageMaxval(Image img) { ///
 void ImageStats(Image img, uint8* min, uint8* max) { ///
   assert (img != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   *min = img->pixel[0];
   *max = img->pixel[0];
 
@@ -350,8 +332,6 @@ void ImageStats(Image img, uint8* min, uint8* max) { ///
       if (pixel > *max) *max = pixel;
     }
   }
-=======
->>>>>>> upstream/main
 }
 
 /// Check if pixel position (x,y) is inside img.
@@ -364,10 +344,7 @@ int ImageValidPos(Image img, int x, int y) { ///
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   return ImageValidPos(img, x, y) && (x + w <= img->width) && (y + h <= img->height);
-=======
->>>>>>> upstream/main
 }
 
 /// Pixel get & set operations
@@ -383,11 +360,8 @@ int ImageValidRect(Image img, int x, int y, int w, int h) { ///
 static inline int G(Image img, int x, int y) {
   int index;
   // Insert your code here!
-<<<<<<< HEAD
   index = img->width * y + x;
 
-=======
->>>>>>> upstream/main
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
@@ -423,7 +397,6 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 void ImageNegative(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   for (int y = 0; y < img->height; y++)
   {
     for (int x = 0; x < img->width; x++)
@@ -433,8 +406,6 @@ void ImageNegative(Image img) { ///
       ImageSetPixel(img, x, y, img->maxval - newPix);
     }
   }
-=======
->>>>>>> upstream/main
 }
 
 /// Apply threshold to image.
@@ -443,7 +414,6 @@ void ImageNegative(Image img) { ///
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   for (int y = 0; y < img->height; y++)
   {
     for (int x = 0; x < img->width; x++)
@@ -455,8 +425,6 @@ void ImageThreshold(Image img, uint8 thr) { ///
       ImageSetPixel(img, x, y, img->maxval);
     }
   }
-=======
->>>>>>> upstream/main
 }
 
 /// Brighten image by a factor.
@@ -465,7 +433,6 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert (img != NULL);
-<<<<<<< HEAD
   assert (factor >= 0.0);
   // Insert your code here!
   for (int y = 0; y < img->height; y++)
@@ -480,10 +447,6 @@ void ImageBrighten(Image img, double factor) { ///
       ImageSetPixel(img, x, y, pix*factor + 0.5);
     }
   }
-=======
-  // ? assert (factor >= 0.0);
-  // Insert your code here!
->>>>>>> upstream/main
 }
 
 
@@ -511,7 +474,6 @@ void ImageBrighten(Image img, double factor) { ///
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   Image rotate_img = NULL;
   
   // Rotated image will have width equal to original image's height and height equal to original image's width
@@ -539,8 +501,6 @@ Image ImageRotate(Image img) { ///
   }
 
   return rotate_img;
-=======
->>>>>>> upstream/main
 }
 
 /// Mirror an image = flip left-right.
@@ -553,7 +513,6 @@ Image ImageRotate(Image img) { ///
 Image ImageMirror(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
-<<<<<<< HEAD
   Image mirror_img = NULL;
   
   int success =
@@ -580,8 +539,6 @@ Image ImageMirror(Image img) { ///
   }
 
   return mirror_img;
-=======
->>>>>>> upstream/main
 }
 
 /// Crop a rectangular subimage from img.
@@ -600,7 +557,6 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   assert (ImageValidRect(img, x, y, w, h));
   // Insert your code here!
-<<<<<<< HEAD
 
   Image crop_img = NULL;
 
@@ -627,8 +583,6 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   }
 
   return crop_img;
-=======
->>>>>>> upstream/main
 }
 
 
@@ -643,7 +597,6 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
-<<<<<<< HEAD
 
   for (int y_paste = 0; y_paste < img2->height; y_paste++)
   {
@@ -654,8 +607,6 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
       ImageSetPixel(img1, x + x_paste, y + y_paste, pix);
     }
   }
-=======
->>>>>>> upstream/main
 }
 
 /// Blend an image into a larger image.
@@ -669,7 +620,6 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
-<<<<<<< HEAD
 
   for (int y_paste = 0; y_paste < img2->height; y_paste++)
   {
@@ -697,8 +647,6 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
       ImageSetPixel(img1, x + x_paste, y + y_paste, (uint8) newPix);
     }
   }
-=======
->>>>>>> upstream/main
 }
 
 /// Compare an image to a subimage of a larger image.
@@ -709,7 +657,6 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
   // Insert your code here!
-<<<<<<< HEAD
 
   // Let's define x_paste as the 'x' coordinate of img2 and y_paste as the 'y' coordinate of img2
   // The (x_paste, y_paste) pixel in img2 will match (or not) (x + x_paste, y + y_paste) pixel in img1
@@ -728,8 +675,6 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
 
   // If for loop ends and no pixel was different, then subimage matches image -> return 1
   return 1;
-=======
->>>>>>> upstream/main
 }
 
 /// Locate a subimage inside another image.
@@ -740,7 +685,6 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
   // Insert your code here!
-<<<<<<< HEAD
 
   for (int y = 0; y < img1->height - img2->height + 1; y++)
   {
@@ -771,11 +715,6 @@ static int min(int a, int b)
 
 
 
-=======
-}
-
-
->>>>>>> upstream/main
 /// Filtering
 
 /// Blur an image by a applying a (2dx+1)x(2dy+1) mean filter.
@@ -784,7 +723,6 @@ static int min(int a, int b)
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
   // Insert your code here!
-<<<<<<< HEAD
 
   // Pointer 'img' can't be NULL and dx and dy should be non-negative
   assert(img != NULL);
@@ -909,7 +847,3 @@ void ImageBlur(Image img, int dx, int dy) { ///
   
   /////////////////////////////////////////////////////////////////////////////////////////////////
 }
-=======
-}
-
->>>>>>> upstream/main
